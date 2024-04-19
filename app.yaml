@@ -1,68 +1,31 @@
-
-kind: ConfigMap
-apiVersion: v1
+apiVersion: apps/v1
+kind: Deployment
 metadata:
-  name: pod-demo-docroot
-  labels:
-    app: pod-demo
-data:
-  index.html: |
-    Hello World!
----
-
-kind: Service
-apiVersion: v1
-metadata:
-  name: pod-demo
-  labels:
-    app: pod-demo
+  namespace: rv-redhat-10-dev
+  name: test
+  annotations: {}
 spec:
   selector:
-    app: pod-demo
-  ports:
-  - name: pod-demo
-    port: 8080
-
----
-
-kind: Deployment
-apiVersion: extensions/v1beta1
-metadata:
-  name: pod-demo
-  labels:
-    app: pod-demo
-spec:
-  replicas: 1
+    matchLabels:
+      app: test
+  replicas: 3
   template:
     metadata:
       labels:
-        app: pod-demo
+        app: test
     spec:
-      volumes:
-        - name: pod-demo-docroot
-          configMap:
-            name: pod-demo-docroot
       containers:
-        - name: server
-          image: busybox
-          args: [ httpd, -f, -p, '8080', -h, /var/www ]
-          volumeMounts:
-            - name: pod-demo-docroot
-              mountPath: /var/www
+        - name: container
+          image: >-
+            image-registry.openshift-image-registry.svc:5000/openshift/httpd:latest
           ports:
             - containerPort: 8080
-
----
-
-kind: Route
-apiVersion: v1
-metadata:
-  name: pod-demo
-  labels:
-    app: pod-demo
-spec:
-  to:
-    kind: Service
-    name: pod-demo
-  port:
-    targetPort: pod-demo
+              protocol: TCP
+          env: []
+      imagePullSecrets: []
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 25%
+  paused: false
